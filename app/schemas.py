@@ -5,13 +5,15 @@ from werkzeug.security import check_password_hash, generate_password_hash
 import datetime as dt
 
 from app.models import Nota
+from app.security import SecurityValidation
 
 class UserSchema(Schema):
     # class Meta:
     #     ordered = True
 
     id = fields.Int(dump_only=True)
-    name = fields.String(dump_only=True)
+    first_name = fields.String(dump_only=True)
+    last_name = fields.String(dump_only=True)
     email = fields.String(
         required=True,
         validate=validate.Email(error="Not a valid email address"),
@@ -26,8 +28,8 @@ class UserSchema(Schema):
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
-    def hashed_password(self, value):
-        return generate_password_hash(value)
+    def hashed_password(self, value: Schema):
+        return SecurityValidation.hashed_password(value.password)
 
     # Clean up data
     @pre_load

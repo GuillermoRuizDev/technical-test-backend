@@ -9,8 +9,8 @@ from app.db import db
 
 class BaseModel(pw.Model):
     """Base model class. All descendants share the same database."""
-    # def __marshallable__(self):
-    #     return dict(self.__dict__)['_data']
+    def __marshallable__(self):
+        return dict(self.__dict__)['_data']
 
     class Meta:
         database = db
@@ -19,7 +19,8 @@ class BaseModel(pw.Model):
 class User(BaseModel):
     email = pw.CharField(max_length=100, unique=True)
     password = pw.CharField()
-    name = pw.CharField()
+    first_name = pw.CharField()
+    last_name = pw.CharField()
     created_at = pw.DateTimeField()
     updated_at = pw.DateTimeField()
 
