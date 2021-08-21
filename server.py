@@ -1,7 +1,8 @@
 """ Server.py """
 
 # modules
-from bottle import run, get, post, request, error
+import bottle
+from bottle import run, get, post, request
 from marshmallow import ValidationError
 import datetime as dt
 import jwt
@@ -10,9 +11,11 @@ import jwt
 from app.models import User, create_tables, Nota
 from app.schemas import user_schema, nota_schema, notas_schema
 from app.security import security_validated, token_generated, token_required
+from app.utils import EnableCors
 
+app = bottle.app()
 
-@post('/api/v1/login')
+@app.post('/api/v1/login')
 def login():
     """ Function to login user """
     json_input = request.json
@@ -48,7 +51,7 @@ def login():
 
 
 
-@post("/api/v1/register")
+@app.post("/api/v1/register")
 def register():
     """ Function register new user """
     json_input = request.json
@@ -80,14 +83,14 @@ def register():
         return {'status':"Error", "message": "That email address is already in the database"}
 
 
-@get("/api/v1/notas")
+@app.get("/api/v1/notas")
 @token_required
 def get_notas(user):
     notas = Nota.select().order_by(Nota.posted_on.asc())  # Get all notas
     return notas_schema.dump(list(notas)).data
 
 
-@get("/api/v1/notas/<pk>")
+@app.get("/api/v1/notas/<pk>")
 @token_required
 def get_nota(pk, user):
     nota = Nota.get(Nota.id == pk)
@@ -96,19 +99,15 @@ def get_nota(pk, user):
     return nota_schema.dump(nota).data
 
 
-@post("/api/v1/notas")
+@app.post("/api/v1/notas")
 @token_required
 def new_nota(user):
-    print(user)
+
     json_input = request.json
     try:
-        print(json_input)
         nota = nota_schema.load(json_input).data
     except ValidationError as err:
         return {"errors": err.messages}
-    print(nota)
-    print("user -----------------------")
-    print(user)
     nota.user = user
     nota.save()
     return nota_schema.dump(nota).data
@@ -116,4 +115,5 @@ def new_nota(user):
 
 if __name__ == "__main__":
     create_tables()
-    run(host='localhost', port=8000, reloader=True, debug=True)
+    app.install(EnableCors())
+    app.run(host='localhost', port=8000, reloader=True, debug=True)
