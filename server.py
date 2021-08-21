@@ -1,7 +1,7 @@
-#Server.py
+""" Server.py """
 
-# bottle
-from bottle import run, get, post, request
+# modules
+from bottle import run, get, post, request, error
 from marshmallow import ValidationError
 import datetime as dt
 import jwt
@@ -9,73 +9,47 @@ import jwt
 # app
 from app.models import User, create_tables
 from app.schemas import user_schema
-from app.security import SecurityValidation, Tokenization
-
-@get('/')
-def say_hello():
-    return "Hello World with Bottle"
+from app.security import security_validated, token_generated, token_required
 
 
 @post('/login')
 def login():
-    data_input = request.json.get()
-    res_data = {}
-
-    try:
-        data = user_schema.load(data_input)
-    except ValidationError as err:
-        return {'status':"error", "message": err.messages}, 422
-
-    #try:  # Use get to see if user already exists
-    user = User.select().where(
-                (User.email == data["email"]) &
-                (SecurityValidation.compare_password(User.username, data["password"]) == True)
-           ).get()
-
-    if not user is None:
-        token = Tokenization.generate_token(user)
-        del data['password']
-
-        res_data['token'] = token
-        res_data['user'] = user
-
-        return {'status': "Successful", "data": res_data, "message": "Usuario logueado correctamente"}, 200
-
-    return {'status':"error", "message": "That email or password are incorrect"}, 400
-
-
-
-#@app.route("/register", methods=["POST"])
-@post("/register")
-def register():
+    """ Function to login user """
     json_input = request.json
+    response_data = {}
+
+    # Validate fields from form
     try:
-        data = user_schema.load(json_input)
+        data = user_schema.load(json_input).data
     except ValidationError as err:
-        return {'status':"error", "message": err.messages}, 422
+        return {'status':"error", "message": err.messages}#, 422
 
-    try:  # Use get to see if user already exists
-        print(data)
-        print(data[1])
-        User.get(User.email == data["email"])
-    except User.DoesNotExist:
-        user = User.create(
-            email = data["email"],
-            password = data["password"],
-            first_name = data["first_name"],
-            last_name = data["last_name"],
-            created_at = dt.datetime.now(),
-            updated_at = dt.datetime.now(),
-        )
-        del user["password"]
-        del user["updated_at"]
-        return {'status':"Successful", 'data': data, 'message': "Successfully created user: {}".format(user.email)}, 201
-    else:
-        return {'status':"Error", "message": "That email address is already in the database"}, 400
+    # User and password validate
+    try:
+        user = User.select().where(
+                (User.email == data["email"])
+           ).get()
+        user = user_schema.dump(user).data['user']
 
-    # data = user_schema.dump(user)
-    # data["message"] = message
-    # return {'status':"error", 'data': data, 'message': "Error "}, 201
+        # Password validate
+        if not (user is None) and (security_validated.compare_password(str(user["password"]), data["password"]) == True):
+
+            token = token_generated.generate_token(user)
+
+            del user['password']
+
+            response_data['user'] = user
+            response_data['token'] = token
+
+            return {'status': "Successful", "data": response_data, "message": "Usuario logueado correctamente"}#, 200
+
+    except ValidationError as err:
+        return {'status':"error", "message": err.messages}
+
+    return {'status':"error", "message": "That email or password are incorrect"}#, 400
+
+
+
 
 if __name__ == "__main__":
     create_tables()

@@ -7,13 +7,15 @@ import jwt
 from config import Config
 class SecurityValidation:
     def hashed_password(self, value):
-        return generate_password_hash(value).decode('utf-8')
+        return generate_password_hash(value)
 
     def compare_password(self, password_login, password_user):
+        #password_login = password_login.
+        print(f'Las claves a igualar: {password_login} y  {password_user}')
         return check_password_hash(password_login, password_user)
 
 class Tokenization:
-    def generate_token(user):
+    def generate_token(self, user):
         time = dt.datetime.utcnow() + dt.timedelta(hours=24)
         payload = {
             "user": {
@@ -23,13 +25,14 @@ class Tokenization:
             "exp": time
         }
         new_token = jwt.encode(payload, Config.SECRET_KEY,'HS256')
-        return new_token
+
+        return new_token.decode('utf-8')
 
 
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        print(request.headers)
+        #print(request.headers)
         if "Authorization" in request.headers:
             token = request.headers["Authorization"]
             try:
@@ -40,3 +43,8 @@ def token_required(f):
         else:
             return {"status": "fail", "message": "unauthorized 2"}, 401
     return decorated
+
+
+
+security_validated = SecurityValidation()
+token_generated = Tokenization()

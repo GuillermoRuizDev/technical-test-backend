@@ -1,40 +1,44 @@
 from re import I
 from marshmallow import (Schema, fields, post_dump, post_load, pre_load,
                          validate)
-from werkzeug.security import check_password_hash, generate_password_hash
+#from werkzeug.security import check_password_hash, generate_password_hash
 import datetime as dt
 
 from app.models import Nota
-from app.security import SecurityValidation
+from app.security import security_validated
 
 class UserSchema(Schema):
     # class Meta:
     #     ordered = True
 
     id = fields.Int(dump_only=True)
-    first_name = fields.String(dump_only=True)
-    last_name = fields.String(dump_only=True)
+    first_name = fields.String(required=True)
+    last_name = fields.String(required=True)
     email = fields.String(
         required=True,
         validate=validate.Email(error="Not a valid email address"),
     )
-    password = fields.Method(
+    # password = fields.Method(
+    #     required=True,
+    #     deserialize="hashed_password",
+    #     validate = [validate.Length(min=6, max=36)]
+    # )
+    password = fields.String(
         required=True,
-        deserialize="hashed_password",
-        validate=[validate.Length(min=6, max=36)],
-        load_only=True
+        validate = [validate.Length(min=6)]
     )
 
     created_at = fields.DateTime(dump_only=True)
     updated_at = fields.DateTime(dump_only=True)
 
-    def hashed_password(self, value: Schema):
-        return SecurityValidation.hashed_password(value.password)
+    # def hashed_password(self, value, **kwargs):
+    #     return security_validated.hashed_password(value.password)
 
     # Clean up data
     @pre_load
     def process_input(self, data, **kwargs):
         data["email"] = data["email"].lower().strip()
+        #data["password"] = security_validated.hashed_password(data["password"])
         return data
 
     # We add a post_dump hook to add an envelope to responses
