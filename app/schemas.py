@@ -51,6 +51,7 @@ class NotaSchema(Schema):
     id = fields.Int(dump_only=True)
     done = fields.Boolean(attribute="is_done", missing=False)
     user = fields.Nested(UserSchema(exclude=("joined_on", "password")), dump_only=True)
+    title = fields.Str(required=True)
     content = fields.Str(required=True)
     posted_on = fields.DateTime(dump_only=True)
 

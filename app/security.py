@@ -5,14 +5,15 @@ from bottle import request
 import jwt
 
 from config import Config
+
+from app.models import User
 class SecurityValidation:
     def hashed_password(self, value):
         return generate_password_hash(value)
 
     def compare_password(self, password_login, password_user):
-        #password_login = password_login.
-        print(f'Las claves a igualar: {password_login} y  {password_user}')
         return check_password_hash(password_login, password_user)
+
 
 class Tokenization:
     def generate_token(self, user):
@@ -32,11 +33,11 @@ class Tokenization:
 def token_required(f):
     @wraps(f)
     def decorated(*args, **kwargs):
-        #print(request.headers)
         if "Authorization" in request.headers:
             token = request.headers["Authorization"]
             try:
-                jwt.decode(token, Config.SECRET_KEY,'HS256')
+                decoded = jwt.decode(token, Config.SECRET_KEY,'HS256')
+                kwargs["user"] = decoded["user"]["id"]
             except:
                 return {"status": "fail", "message": "unauthorized 1"}, 401
             return f(*args, **kwargs)
